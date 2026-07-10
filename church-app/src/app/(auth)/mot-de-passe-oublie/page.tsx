@@ -32,7 +32,11 @@ export default function MotDePasseOubliePage() {
     setIsLoading(false)
 
     if (error) {
-      setError(error.message)
+      if (error.message.toLowerCase().includes('rate limit')) {
+        setError('Trop de demandes envoyées. Patientez quelques minutes avant de réessayer.')
+      } else {
+        setError("Une erreur est survenue, réessayez.")
+      }
       return
     }
 
