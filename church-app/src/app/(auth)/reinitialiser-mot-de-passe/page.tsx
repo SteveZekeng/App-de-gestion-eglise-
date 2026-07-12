@@ -3,21 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { CheckCircle2 } from 'lucide-react'
-
-// On utilise ici le client @supabase/supabase-js standard (pas @supabase/ssr)
-// car il détecte automatiquement le fragment #access_token=...&type=recovery
-// dans l'URL et déclenche l'événement PASSWORD_RECOVERY.
-// Le client @supabase/ssr force le flow PKCE et ignore ces fragments.
-function creerClientStandard() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
 
 export default function ReinitialiserMotDePassePage() {
   const router = useRouter()
@@ -29,31 +18,11 @@ export default function ReinitialiserMotDePassePage() {
   const [succes, setSucces] = useState(false)
 
   useEffect(() => {
-    const supabase = creerClientStandard()
+    const supabase = createClient()
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setLienValide(true)
-      }
-    })
-
-    // Cas où la session est déjà active à l'arrivée sur la page
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setLienValide((v) => v ?? true)
+      setLienValide(data.session !== null)
     })
-
-    // Délai de sécurité : si après 8s rien n'est détecté, le lien est invalide
-    // (8s pour laisser le temps sur mobile en 3G/4G lente)
-    const timeout = setTimeout(() => {
-      setLienValide((v) => v ?? false)
-    }, 8000)
-
-    return () => {
-      subscription.unsubscribe()
-      clearTimeout(timeout)
-    }
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -71,7 +40,7 @@ export default function ReinitialiserMotDePassePage() {
     setIsLoading(true)
     setError('')
 
-    const supabase = creerClientStandard()
+    const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password })
 
     if (error) {
