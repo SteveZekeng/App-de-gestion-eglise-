@@ -2,10 +2,17 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { createClient as createClientVanilla } from '@supabase/supabase-js'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { MailCheck } from 'lucide-react'
+
+function creerClient() {
+  return createClientVanilla(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 export default function MotDePasseOubliePage() {
   const [email, setEmail] = useState('')
@@ -24,9 +31,9 @@ export default function MotDePasseOubliePage() {
     setIsLoading(true)
     setError('')
 
-    const supabase = createClient()
+    const supabase = creerClient()
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/confirm?next=/reinitialiser-mot-de-passe`,
+      redirectTo: `${window.location.origin}/reinitialiser-mot-de-passe`,
     })
 
     setIsLoading(false)

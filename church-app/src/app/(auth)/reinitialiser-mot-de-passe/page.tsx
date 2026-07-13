@@ -3,10 +3,17 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@supabase/supabase-js'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { CheckCircle2 } from 'lucide-react'
+
+function creerClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 export default function ReinitialiserMotDePassePage() {
   const router = useRouter()
@@ -18,11 +25,19 @@ export default function ReinitialiserMotDePassePage() {
   const [succes, setSucces] = useState(false)
 
   useEffect(() => {
-    const supabase = createClient()
+    const supabase = creerClient()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setLienValide(true)
+    })
 
     supabase.auth.getSession().then(({ data }) => {
-      setLienValide(data.session !== null)
+      if (data.session) setLienValide((v) => v ?? true)
     })
+
+    const timeout = setTimeout(() => setLienValide((v) => v ?? false), 8000)
+
+    return () => { subscription.unsubscribe(); clearTimeout(timeout) }
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,7 +55,7 @@ export default function ReinitialiserMotDePassePage() {
     setIsLoading(true)
     setError('')
 
-    const supabase = createClient()
+    const supabase = creerClient()
     const { error } = await supabase.auth.updateUser({ password })
 
     if (error) {
